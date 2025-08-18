@@ -676,7 +676,7 @@ function Scene({ handPosition, spearState, thrownSpears, animals, onAnimalHit, o
 }
 
 // Overlay UI component
-function Overlay({ spearState, showCamera, onToggleCamera, isReady, videoRef, handLandmarks, powerLevel, thrownSpearsCount, playerHealth, score, screenFlash, hitMessage, isPaused, onTogglePause, isGameOver, onRestart, availableCameras, selectedCameraId, onCameraChange }) {
+function Overlay({ spearState, showCamera, onToggleCamera, isReady, videoRef, handLandmarks, powerLevel, thrownSpearsCount, playerHealth, score, screenFlash, hitMessage, isPaused, onTogglePause, isGameOver, onRestart, availableCameras, selectedCameraId, onCameraChange, cameraRotation, onCameraRotation }) {
   // Debug hand detection states
   const isFist = handLandmarks ? detectFist(handLandmarks) : false
   const isOpenPalm = handLandmarks ? detectOpenPalm(handLandmarks) : false
@@ -839,6 +839,58 @@ function Overlay({ spearState, showCamera, onToggleCamera, isReady, videoRef, ha
             </select>
           )}
         </div>
+        
+        {/* Camera Rotation Controls */}
+        <div className="controls" style={{ marginTop: '10px' }}>
+          <div style={{ color: 'white', fontSize: '12px', marginBottom: '5px' }}>Camera Input Rotation:</div>
+          <button 
+            onClick={() => onCameraRotation(0)} 
+            className="toggle-btn"
+            style={{ 
+              backgroundColor: cameraRotation === 0 ? 'rgba(0, 255, 0, 0.8)' : 'rgba(255, 255, 255, 0.9)',
+              fontSize: '12px',
+              padding: '6px 12px'
+            }}
+          >
+            0°
+          </button>
+          <button 
+            onClick={() => onCameraRotation(90)} 
+            className="toggle-btn"
+            style={{ 
+              backgroundColor: cameraRotation === 90 ? 'rgba(0, 255, 0, 0.8)' : 'rgba(255, 255, 255, 0.9)',
+              fontSize: '12px',
+              padding: '6px 12px',
+              marginLeft: '5px'
+            }}
+          >
+            90°
+          </button>
+          <button 
+            onClick={() => onCameraRotation(180)} 
+            className="toggle-btn"
+            style={{ 
+              backgroundColor: cameraRotation === 180 ? 'rgba(0, 255, 0, 0.8)' : 'rgba(255, 255, 255, 0.9)',
+              fontSize: '12px',
+              padding: '6px 12px',
+              marginLeft: '5px'
+            }}
+          >
+            180°
+          </button>
+          <button 
+            onClick={() => onCameraRotation(270)} 
+            className="toggle-btn"
+            style={{ 
+              backgroundColor: cameraRotation === 270 ? 'rgba(0, 255, 0, 0.8)' : 'rgba(255, 255, 255, 0.9)',
+              fontSize: '12px',
+              padding: '6px 12px',
+              marginLeft: '5px'
+            }}
+          >
+            270°
+          </button>
+        </div>
       </div>
 
       <div className="bottom-left">
@@ -887,6 +939,7 @@ function App() {
   const [hitMessage, setHitMessage] = useState('')
   const [isPaused, setIsPaused] = useState(false)
   const [isGameOver, setIsGameOver] = useState(false)
+  const [cameraRotation, setCameraRotation] = useState(0) // 0, 90, 180, 270 degrees
   const powerDirection = useRef(1)
   const powerInterval = useRef(null)
   const spearIdCounter = useRef(0)
@@ -1025,6 +1078,22 @@ function App() {
     animalIdCounter.current = 0
   }
 
+  // Function to rotate coordinates based on camera rotation
+  const rotateCoordinates = (x, y, rotation) => {
+    const rad = (rotation * Math.PI) / 180
+    const cos = Math.cos(rad)
+    const sin = Math.sin(rad)
+    return [
+      x * cos - y * sin,
+      x * sin + y * cos
+    ]
+  }
+
+  // Handle camera rotation change
+  const handleCameraRotation = (degrees) => {
+    setCameraRotation(degrees)
+  }
+
   useEffect(() => {
     if (handLandmarks && isReady && !isPaused && !isGameOver) {
       const isFist = detectFist(handLandmarks)
@@ -1033,9 +1102,15 @@ function App() {
 
       // Convert hand landmarks to 3D position
       const handCenter = handLandmarks[9] // Middle finger MCP joint
+      let x = (0.5 - handCenter.x) * 25 // Increased X-axis range for wider movement
+      let y = (1 - handCenter.y) * 2.5  // Reduced Y height to match animal ground level
+      
+      // Apply camera rotation to X and Y coordinates
+      const [rotatedX, rotatedY] = rotateCoordinates(x, y, cameraRotation)
+      
       const position = [
-        (0.5 - handCenter.x) * 25, // Increased X-axis range for wider movement
-        (1 - handCenter.y) * 2.5,  // Reduced Y height to match animal ground level
+        rotatedX,
+        rotatedY,
         5 + handCenter.z * -3      // Start closer to camera (z=5) and scale depth
       ]
 
@@ -1083,7 +1158,7 @@ function App() {
     <div className="app">
       <Canvas
         shadows
-        camera={{ position: [0, 5, 10], fov: 90 }}
+        camera={{ position: [0, 5, 10], fov: 75 }}
         style={{ width: '100vw', height: '100vh' }}
       >
         <Scene
@@ -1119,6 +1194,8 @@ function App() {
         availableCameras={availableCameras}
         selectedCameraId={selectedCameraId}
         onCameraChange={setSelectedCameraId}
+        cameraRotation={cameraRotation}
+        onCameraRotation={handleCameraRotation}
       />
     </div>
   )

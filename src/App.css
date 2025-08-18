@@ -1,0 +1,245 @@
+* {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+}
+
+#root {
+	width: 100vw;
+	height: 100vh;
+	overflow: hidden;
+}
+
+.app {
+	position: relative;
+	width: 100vw;
+	height: 100vh;
+}
+
+.overlay {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	pointer-events: none;
+	z-index: 1000;
+}
+
+.top-center {
+	position: absolute;
+	top: 20px;
+	left: 50%;
+	transform: translateX(-50%);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 10px;
+	pointer-events: auto;
+}
+
+.top-left {
+	position: absolute;
+	top: 20px;
+	left: 20px;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 10px;
+	pointer-events: auto;
+}
+
+.top-right {
+	position: absolute;
+	top: 20px;
+	right: 20px;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 10px;
+	pointer-events: auto;
+}
+
+.game-stats {
+	background: rgba(0, 0, 0, 0.8);
+	padding: 15px 20px;
+	border-radius: 12px;
+	backdrop-filter: blur(10px);
+	border: 2px solid rgba(255, 255, 255, 0.1);
+	min-width: 200px;
+}
+
+.camera-view {
+	position: relative;
+	background: rgba(0, 0, 0, 0.8);
+	border-radius: 12px;
+	padding: 8px;
+	backdrop-filter: blur(10px);
+}
+
+.hand-indicator {
+	position: absolute;
+	top: 8px;
+	left: 8px;
+	background: rgba(0, 255, 0, 0.8);
+	color: white;
+	padding: 4px 8px;
+	border-radius: 4px;
+	font-size: 12px;
+	font-weight: bold;
+}
+
+.controls {
+	display: flex;
+	gap: 10px;
+}
+
+.toggle-btn {
+	background: rgba(255, 255, 255, 0.9);
+	border: none;
+	padding: 8px 16px;
+	border-radius: 6px;
+	cursor: pointer;
+	font-weight: 500;
+	transition: all 0.2s;
+}
+
+.toggle-btn:hover {
+	background: rgba(255, 255, 255, 1);
+	transform: translateY(-1px);
+}
+
+.camera-selector {
+	background: rgba(255, 255, 255, 0.9);
+	border: none;
+	padding: 8px 12px;
+	border-radius: 6px;
+	cursor: pointer;
+	font-weight: 500;
+	transition: all 0.2s;
+	color: #333;
+}
+
+.camera-selector:hover {
+	background: rgba(255, 255, 255, 1);
+	transform: translateY(-1px);
+}
+
+.camera-selector:focus {
+	outline: none;
+	box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+}
+
+.bottom-left {
+	position: absolute;
+	bottom: 20px;
+	left: 20px;
+	background: rgba(0, 0, 0, 0.8);
+	color: white;
+	padding: 16px;
+	border-radius: 12px;
+	backdrop-filter: blur(10px);
+	min-width: 250px;
+	pointer-events: auto;
+}
+
+.status {
+	margin-bottom: 12px;
+}
+
+.status div {
+	margin-bottom: 4px;
+	font-size: 14px;
+}
+
+.status-value {
+	font-weight: bold;
+	color: #4ade80;
+}
+
+.instructions {
+	font-size: 13px;
+	color: #d1d5db;
+	line-height: 1.4;
+	border-top: 1px solid rgba(255, 255, 255, 0.2);
+	padding-top: 8px;
+}
+
+.power-meter {
+	margin-top: 10px;
+	padding: 10px;
+	background: rgba(0, 0, 0, 0.7);
+	border-radius: 8px;
+	min-width: 200px;
+}
+
+.power-meter-bottom {
+	position: fixed;
+	bottom: 20px;
+	left: 50%;
+	transform: translateX(-50%);
+	padding: 15px 25px;
+	background: rgba(0, 0, 0, 0.8);
+	border-radius: 12px;
+	min-width: 300px;
+	backdrop-filter: blur(10px);
+	border: 2px solid rgba(255, 255, 255, 0.1);
+	z-index: 1000;
+}
+
+.power-label {
+	color: white;
+	font-size: 14px;
+	font-weight: bold;
+	margin-bottom: 8px;
+	text-align: center;
+	text-transform: uppercase;
+	letter-spacing: 1px;
+}
+
+.power-bar {
+	width: 100%;
+	height: 24px;
+	background: rgba(255, 255, 255, 0.2);
+	border-radius: 12px;
+	overflow: hidden;
+	margin-bottom: 8px;
+	border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.power-fill {
+	height: 100%;
+	transition: width 0.05s ease;
+	border-radius: 12px;
+	box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
+
+.power-value {
+	color: white;
+	font-size: 14px;
+	text-align: center;
+	font-weight: bold;
+	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+	.camera-view video {
+		width: 160px !important;
+		height: 120px !important;
+	}
+
+	.bottom-left {
+		min-width: 200px;
+		font-size: 12px;
+	}
+
+	.top-center {
+		top: 10px;
+	}
+
+	.bottom-left {
+		bottom: 10px;
+		left: 10px;
+	}
+}

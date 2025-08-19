@@ -28,7 +28,7 @@ const ANIMAL_TYPES = {
     size: [2, 2.5, 3],
     color: '#8B7355',
     score: 100,
-    spawnWeight: 2
+    spawnWeight: 0.5
   },
   CHEETAH: {
     name: 'cheetah',
@@ -39,7 +39,7 @@ const ANIMAL_TYPES = {
     size: [1.5, 2.0, 2],
     color: '#DAA520',
     score: 75,
-    spawnWeight: 3
+    spawnWeight: 0.125
   },
   ANTELOPE: {
     name: 'antelope',
@@ -50,7 +50,7 @@ const ANIMAL_TYPES = {
     size: [1, 2.2, 1.5],
     color: '#CD853F',
     score: 50,
-    spawnWeight: 6
+    spawnWeight: 0.25
   }
 }
 
@@ -277,7 +277,7 @@ function GroundPlane() {
   configureTexture(armMap)
 
   return (
-    <Plane args={[20, 40]} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, -10]} receiveShadow>
+    <Plane args={[20, 40]} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.5, -10]} receiveShadow>
       <meshStandardMaterial
         map={diffuseMap}
         normalMap={normalMap}
@@ -290,7 +290,7 @@ function GroundPlane() {
         metalness={0.1}
         color={0xcccccc} // Very slightly darker ground plane
         transparent={true}
-        opacity={0.9} // Slight transparency
+        opacity={0.15} // Slight transparency
       />
     </Plane>
   )
@@ -607,7 +607,7 @@ function ThrownSpear({ spearData, isPaused, onMiss }) {
 function Scene({ handPosition, spearState, thrownSpears, animals, onAnimalHit, onAnimalReachPlayer, onHitMessage, isPaused, onSpearMiss }) {
   return (
     <>
-      <Environment files="/env.hdr" background />
+      <Environment files="/savannah.hdr" background backgroundRotation={[0, Math.PI * 2 / 3, 0]} />
       <ambientLight intensity={0.05} />
       <directionalLight
         position={[0, 20, 10]}
@@ -676,72 +676,16 @@ function Scene({ handPosition, spearState, thrownSpears, animals, onAnimalHit, o
 }
 
 // Overlay UI component
-function Overlay({ spearState, showCamera, onToggleCamera, isReady, videoRef, handLandmarks, powerLevel, thrownSpearsCount, playerHealth, score, screenFlash, hitMessage, isPaused, onTogglePause, isGameOver, onRestart, availableCameras, selectedCameraId, onCameraChange, cameraRotation, onCameraRotation }) {
+function Overlay({ spearState, showCamera, onToggleCamera, isReady, videoRef, handLandmarks, thrownSpearsCount, score, hitMessage, isPaused, onTogglePause, onRestart, availableCameras, selectedCameraId, onCameraChange, cameraRotation, onCameraRotation }) {
   // Debug hand detection states
   const isFist = handLandmarks ? detectFist(handLandmarks) : false
   const isOpenPalm = handLandmarks ? detectOpenPalm(handLandmarks) : false
 
   return (
     <div className="overlay">
-      {/* Screen flash effect */}
-      {screenFlash && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100vw',
-            height: '100vh',
-            backgroundColor: 'rgba(255, 0, 0, 0.5)',
-            pointerEvents: 'none',
-            zIndex: 1000
-          }}
-        />
-      )}
-
-      {/* Game Over Screen */}
-      {isGameOver && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100vw',
-            height: '100vh',
-            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            alignItems: 'center',
-            zIndex: 2000
-          }}
-        >
-          <div style={{ color: '#FF0000', fontSize: '48px', fontWeight: 'bold', marginBottom: '20px' }}>
-            GAME OVER
-          </div>
-          <div style={{ color: '#fff', fontSize: '24px', marginBottom: '10px' }}>
-            Final Score: <span style={{ color: '#FFD700' }}>{score}</span>
-          </div>
-          <button
-            onClick={onRestart}
-            style={{
-              padding: '15px 30px',
-              fontSize: '20px',
-              backgroundColor: '#4CAF50',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              marginTop: '20px'
-            }}
-          >
-            Restart Game
-          </button>
-        </div>
-      )}
 
       {/* Pause Screen */}
-      {isPaused && !isGameOver && (
+      {isPaused && (
         <div
           style={{
             position: 'fixed',
@@ -784,9 +728,6 @@ function Overlay({ spearState, showCamera, onToggleCamera, isReady, videoRef, ha
 
       <div className="top-left">
         <div className="game-stats">
-          <div style={{ color: '#fff', fontSize: '20px', fontWeight: 'bold', marginBottom: '10px' }}>
-            Health: <span style={{ color: playerHealth > 50 ? '#00FF00' : playerHealth > 25 ? '#FFFF00' : '#FF0000' }}>{playerHealth}</span>
-          </div>
           <div style={{ color: '#fff', fontSize: '20px', fontWeight: 'bold' }}>
             Score: <span style={{ color: '#FFD700' }}>{score}</span>
           </div>
@@ -839,14 +780,14 @@ function Overlay({ spearState, showCamera, onToggleCamera, isReady, videoRef, ha
             </select>
           )}
         </div>
-        
+
         {/* Camera Rotation Controls */}
         <div className="controls" style={{ marginTop: '10px' }}>
           <div style={{ color: 'white', fontSize: '12px', marginBottom: '5px' }}>Camera Input Rotation:</div>
-          <button 
-            onClick={() => onCameraRotation(0)} 
+          <button
+            onClick={() => onCameraRotation(0)}
             className="toggle-btn"
-            style={{ 
+            style={{
               backgroundColor: cameraRotation === 0 ? 'rgba(0, 255, 0, 0.8)' : 'rgba(255, 255, 255, 0.9)',
               fontSize: '12px',
               padding: '6px 12px'
@@ -854,10 +795,10 @@ function Overlay({ spearState, showCamera, onToggleCamera, isReady, videoRef, ha
           >
             0°
           </button>
-          <button 
-            onClick={() => onCameraRotation(90)} 
+          <button
+            onClick={() => onCameraRotation(90)}
             className="toggle-btn"
-            style={{ 
+            style={{
               backgroundColor: cameraRotation === 90 ? 'rgba(0, 255, 0, 0.8)' : 'rgba(255, 255, 255, 0.9)',
               fontSize: '12px',
               padding: '6px 12px',
@@ -866,10 +807,10 @@ function Overlay({ spearState, showCamera, onToggleCamera, isReady, videoRef, ha
           >
             90°
           </button>
-          <button 
-            onClick={() => onCameraRotation(180)} 
+          <button
+            onClick={() => onCameraRotation(180)}
             className="toggle-btn"
-            style={{ 
+            style={{
               backgroundColor: cameraRotation === 180 ? 'rgba(0, 255, 0, 0.8)' : 'rgba(255, 255, 255, 0.9)',
               fontSize: '12px',
               padding: '6px 12px',
@@ -878,10 +819,10 @@ function Overlay({ spearState, showCamera, onToggleCamera, isReady, videoRef, ha
           >
             180°
           </button>
-          <button 
-            onClick={() => onCameraRotation(270)} 
+          <button
+            onClick={() => onCameraRotation(270)}
             className="toggle-btn"
-            style={{ 
+            style={{
               backgroundColor: cameraRotation === 270 ? 'rgba(0, 255, 0, 0.8)' : 'rgba(255, 255, 255, 0.9)',
               fontSize: '12px',
               padding: '6px 12px',
@@ -907,20 +848,6 @@ function Overlay({ spearState, showCamera, onToggleCamera, isReady, videoRef, ha
         </div>
       </div>
 
-      {/* Power meter - always visible at bottom */}
-      <div className="power-meter-bottom">
-        <div className="power-label">Power</div>
-        <div className="power-bar">
-          <div
-            className="power-fill"
-            style={{
-              width: `${powerLevel}%`,
-              backgroundColor: `hsl(${powerLevel * 1.2}, 70%, 50%)`
-            }}
-          />
-        </div>
-        <div className="power-value">{Math.round(powerLevel)}%</div>
-      </div>
     </div>
   )
 }
@@ -930,53 +857,24 @@ function App() {
   const [spearState, setSpearState] = useState(SPEAR_STATES.IDLE)
   const [showCamera, setShowCamera] = useState(true)
   const [handPosition, setHandPosition] = useState(null)
-  const [powerLevel, setPowerLevel] = useState(0)
   const [thrownSpears, setThrownSpears] = useState([])
   const [animals, setAnimals] = useState([])
-  const [playerHealth, setPlayerHealth] = useState(100)
   const [score, setScore] = useState(0)
-  const [screenFlash, setScreenFlash] = useState(false)
   const [hitMessage, setHitMessage] = useState('')
   const [isPaused, setIsPaused] = useState(false)
-  const [isGameOver, setIsGameOver] = useState(false)
   const [cameraRotation, setCameraRotation] = useState(0) // 0, 90, 180, 270 degrees
-  const powerDirection = useRef(1)
-  const powerInterval = useRef(null)
   const spearIdCounter = useRef(0)
   const animalIdCounter = useRef(0)
   const animalSpawnInterval = useRef(null)
 
-  // Power meter oscillation effect - runs continuously
-  useEffect(() => {
-    if (isPaused || isGameOver) return
-
-    powerInterval.current = setInterval(() => {
-      setPowerLevel(prev => {
-        const newLevel = prev + (powerDirection.current * 4) // Increased from 2 to 4 for faster cycling
-        if (newLevel >= 100) {
-          powerDirection.current = -1
-          return 100
-        } else if (newLevel <= 0) {
-          powerDirection.current = 1
-          return 0
-        }
-        return newLevel
-      })
-    }, 30) // Reduced from 50ms to 30ms for smoother animation
-
-    return () => {
-      if (powerInterval.current) {
-        clearInterval(powerInterval.current)
-      }
-    }
-  }, [isPaused, isGameOver])
+  // Removed power meter oscillation - all shots are now max power
 
   // Animal spawning system
   useEffect(() => {
-    if (isPaused || isGameOver || playerHealth <= 0) return
+    if (isPaused) return
 
     animalSpawnInterval.current = setInterval(() => {
-      if (playerHealth <= 0 || isPaused || isGameOver) return // Stop spawning if player is dead, paused, or game over
+      if (isPaused) return // Stop spawning only if paused
 
       // Weighted random animal type selection
       const animalTypes = Object.values(ANIMAL_TYPES)
@@ -1012,21 +910,11 @@ function App() {
         clearInterval(animalSpawnInterval.current)
       }
     }
-  }, [playerHealth, isPaused, isGameOver])
+  }, [isPaused])
 
-  // Handle animal hitting player
+  // Handle animal hitting player - no damage in endless mode
   const handleAnimalReachPlayer = (damage) => {
-    setPlayerHealth(prev => {
-      const newHealth = Math.max(0, prev - damage)
-      if (newHealth <= 0) {
-        setIsGameOver(true)
-      }
-      return newHealth
-    })
-
-    // Screen flash effect
-    setScreenFlash(true)
-    setTimeout(() => setScreenFlash(false), 200)
+    // Animals just pass through without causing damage or game over
   }
 
   // Handle animal being killed
@@ -1058,21 +946,16 @@ function App() {
 
   // Handle pause toggle
   const handleTogglePause = () => {
-    if (!isGameOver) {
-      setIsPaused(prev => !prev)
-    }
+    setIsPaused(prev => !prev)
   }
 
   // Handle game restart
   const handleRestart = () => {
-    setPlayerHealth(100)
     setScore(0)
     setAnimals([])
     setThrownSpears([])
-    setIsGameOver(false)
     setIsPaused(false)
     setHitMessage('')
-    setScreenFlash(false)
     setSpearState(SPEAR_STATES.IDLE)
     spearIdCounter.current = 0
     animalIdCounter.current = 0
@@ -1095,7 +978,7 @@ function App() {
   }
 
   useEffect(() => {
-    if (handLandmarks && isReady && !isPaused && !isGameOver) {
+    if (handLandmarks && isReady && !isPaused) {
       const isFist = detectFist(handLandmarks)
       const isOpenPalm = detectOpenPalm(handLandmarks)
       console.log('Hand detection - Fist:', isFist, 'Open Palm:', isOpenPalm, 'Spear State:', spearState)
@@ -1104,10 +987,10 @@ function App() {
       const handCenter = handLandmarks[9] // Middle finger MCP joint
       let x = (0.5 - handCenter.x) * 25 // Increased X-axis range for wider movement
       let y = (1 - handCenter.y) * 2.5  // Reduced Y height to match animal ground level
-      
+
       // Apply camera rotation to X and Y coordinates
       const [rotatedX, rotatedY] = rotateCoordinates(x, y, cameraRotation)
-      
+
       const position = [
         rotatedX,
         rotatedY,
@@ -1124,13 +1007,13 @@ function App() {
         setSpearState(SPEAR_STATES.GRIPPED)
         setHandPosition(position) // Set initial grip position
       } else if (isOpenPalm && spearState === SPEAR_STATES.GRIPPED) {
-        // Calculate throwing velocity based on power level
-        const powerRatio = powerLevel / 100
-        const baseVelocity = 2.0 + powerRatio * 8.0 // Increased from 1.5-7.5 to 2.0-10.0 for more distance
+        // All shots are now max power
+        const powerRatio = 1.0 // Always 100% power
+        const baseVelocity = 2.0 + powerRatio * 8.0 // Max velocity
 
-        // Z velocity scaled by power (100% power reaches target)
-        const zVelocity = -baseVelocity * (1 + powerRatio * 8) // Increased multiplier from 6 to 8 for much more distance
-        const yVelocity = 1.0 + powerRatio * 2.0 // Increased upward arc for better trajectory
+        // Z velocity at max power
+        const zVelocity = -baseVelocity * (1 + powerRatio * 8) // Max distance
+        const yVelocity = 1.0 + powerRatio * 2.0 // Max upward arc
         const xVelocity = 0 // No horizontal movement
 
         const velocity = [xVelocity, yVelocity, zVelocity]
@@ -1152,7 +1035,7 @@ function App() {
       }
     }
     // If hand tracking is lost while gripped, keep spear in current position
-  }, [handLandmarks, isReady, spearState, powerLevel, handPosition, isPaused, isGameOver])
+  }, [handLandmarks, isReady, spearState, handPosition, isPaused])
 
   return (
     <div className="app">
@@ -1181,15 +1064,11 @@ function App() {
         isReady={isReady}
         videoRef={videoRef}
         handLandmarks={handLandmarks}
-        powerLevel={powerLevel}
         thrownSpearsCount={thrownSpears.length}
-        playerHealth={playerHealth}
         score={score}
-        screenFlash={screenFlash}
         hitMessage={hitMessage}
         isPaused={isPaused}
         onTogglePause={handleTogglePause}
-        isGameOver={isGameOver}
         onRestart={handleRestart}
         availableCameras={availableCameras}
         selectedCameraId={selectedCameraId}

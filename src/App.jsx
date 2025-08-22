@@ -572,7 +572,7 @@ function Scene({ headPosition, spearState, thrownSpears, animals, onAnimalHit, o
       {/* Ground plane - extended to end of range */}
       <GroundPlane />
 
-      {/* Grass scattered across ground plane - 30 instances covering full length */}
+      {/* Grass scattered across ground plane - 30 instances covering full lengh */}
       <GrassModel position={[0, -4.5, -10]} scale={[1.0, 1.0, 1.0]} />
       <GrassModel position={[-8, -4.5, -5]} scale={[0.8, 0.8, 0.8]} rotation={[0, 0.5, 0]} />
       <GrassModel position={[7, -4.5, -15]} scale={[1.2, 1.2, 1.2]} rotation={[0, -0.3, 0]} />

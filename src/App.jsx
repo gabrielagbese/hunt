@@ -305,13 +305,17 @@ function Animal({ animalData, onHit, onReachPlayer, thrownSpears, onHitMessage, 
   const meshRef = useRef()
   const audioRef = useRef()
   const ambientAudioRef = useRef()
+  const catAudioRef = useRef()
+  const catHitAudioRef = useRef()
+  const antelopeAudioRef = useRef()
+  const antelopeHitAudioRef = useRef()
   const [position, setPosition] = useState(animalData.position)
   const [health, setHealth] = useState(animalData.type.health)
   const [isAlive, setIsAlive] = useState(true)
   const [stuckSpears, setStuckSpears] = useState([])
   const [isDying, setIsDying] = useState(false)
   const [rotation, setRotation] = useState([0, 0, 0])
-  const [audioVolume] = useState(animalData.type.name === 'elephant' ? 0.3 + Math.random() * 0.4 : 0) // Random volume between 0.3-0.7 for elephants
+  const [audioVolume] = useState(animalData.type.name === 'elephant' ? 0.3 + Math.random() * 0.4 : 0.5) // Random volume for elephants, fixed for others
 
   // Start ambient audio for elephants when component mounts
   useEffect(() => {
@@ -322,6 +326,20 @@ function Animal({ animalData, onHit, onReachPlayer, thrownSpears, onHitMessage, 
           ambientAudioRef.current.play()
         }
       }, 100)
+    }
+    // Play leopard ambient sound when cat spawns
+    if (animalData.type.name === 'cheetah' && catAudioRef.current) {
+      setTimeout(() => {
+        if (catAudioRef.current && catAudioRef.current.play) {
+          catAudioRef.current.play()
+        }
+      }, 150)
+    }
+    // Play moose sound when antelope spawns
+    if (animalData.type.name === 'antelope' && antelopeAudioRef.current) {
+      setTimeout(() => {
+        antelopeAudioRef.current.play()
+      }, 200)
     }
   }, [])
 
@@ -362,7 +380,15 @@ function Animal({ animalData, onHit, onReachPlayer, thrownSpears, onHitMessage, 
       if (animalData.type.name === 'elephant' && ambientAudioRef.current) {
         ambientAudioRef.current.pause()
       }
-      
+      // Stop ambient audio when cat reaches player
+      if (animalData.type.name === 'cheetah' && catAudioRef.current) {
+        catAudioRef.current.pause()
+      }
+      // Stop ambient audio when antelope reaches player
+      if (animalData.type.name === 'antelope' && antelopeAudioRef.current) {
+        antelopeAudioRef.current.pause()
+      }
+
       onReachPlayer(animalData.type.damage, animalData.id)
       setIsAlive(false)
       return
@@ -400,20 +426,34 @@ function Animal({ animalData, onHit, onReachPlayer, thrownSpears, onHitMessage, 
           if (ambientAudioRef.current && ambientAudioRef.current.pause) {
             ambientAudioRef.current.pause()
           }
-          
+
           // Ensure no looping and avoid retriggering while already playing
           if (typeof audioRef.current.setLoop === 'function') {
             audioRef.current.setLoop(false)
           }
           if (!audioRef.current.isPlaying) {
             audioRef.current.play()
-            
+
             // Resume ambient sound after hit sound finishes (approximately 2 seconds)
             setTimeout(() => {
               if (ambientAudioRef.current && ambientAudioRef.current.play && isAlive) {
                 ambientAudioRef.current.play()
               }
             }, 2000)
+          }
+        }
+
+        // Play leopard roar when cat is hit
+        if (animalData.type.name === 'cheetah' && catHitAudioRef.current) {
+          if (!catHitAudioRef.current.isPlaying) {
+            catHitAudioRef.current.play()
+          }
+        }
+
+        // Play antelope hit sound when antelope hits
+        if (animalData.type.name === 'antelope' && antelopeHitAudioRef.current) {
+          if (!antelopeHitAudioRef.current.isPlaying) {
+            antelopeHitAudioRef.current.play()
           }
         }
 
@@ -428,14 +468,23 @@ function Animal({ animalData, onHit, onReachPlayer, thrownSpears, onHitMessage, 
         }, 500)
 
         if (newHealth <= 0) {
-          setIsAlive(false)
           setIsDying(true)
-          
-          // Stop ambient audio when elephant dies
+          setIsAlive(false)
+
+          // Pause ambient audio for elephants when they die
           if (animalData.type.name === 'elephant' && ambientAudioRef.current) {
             ambientAudioRef.current.pause()
           }
-          
+
+          // Pause ambient audio for cats when they die
+          if (animalData.type.name === 'cheetah' && catAudioRef.current) {
+            catAudioRef.current.pause()
+          }
+
+          // Pause ambient audio for antelopes when they die
+          if (animalData.type.name === 'antelope' && antelopeAudioRef.current) {
+            antelopeAudioRef.current.pause()
+          }
           onHit(animalData.type.score, spear.id, animalData.id)
 
 
@@ -495,23 +544,55 @@ function Animal({ animalData, onHit, onReachPlayer, thrownSpears, onHitMessage, 
           />
         </>
       ) : animalData.type.name === 'antelope' ? (
-        <AntelopeModel
-          scale={[3, 3, 3]}
-          rotation={rotation}
-          castShadow
-          animationState={isDying ? 'death' : 'walk'}
-        />
+        <>
+          <AntelopeModel
+            scale={[3, 3, 3]}
+            rotation={rotation}
+            castShadow
+            animationState={isDying ? 'death' : 'walk'}
+          />
+          <PositionalAudio
+            ref={antelopeAudioRef}
+            url="/audio/antelopeambient.mp3"
+            distance={20}
+            volume={audioVolume}
+            loop={true}
+          />
+          <PositionalAudio
+            ref={antelopeHitAudioRef}
+            url="/audio/antelopehit.mp3"
+            distance={20}
+            volume={audioVolume}
+            loop={false}
+          />
+        </>
       ) : animalData.type.name === 'cheetah' ? (
-        <CatModel
-          scale={[3.5, 3.5, 3.5]}
-          rotation={rotation}
-          castShadow
-          animationState={
-            isDying ? 'death' :
-              health === animalData.type.health - 1 ? 'run' :
-                'walk'
-          }
-        />
+        <>
+          <CatModel
+            scale={[3.5, 3.5, 3.5]}
+            rotation={rotation}
+            castShadow
+            animationState={
+              isDying ? 'death' :
+                health === animalData.type.health - 1 ? 'run' :
+                  'walk'
+            }
+          />
+          <PositionalAudio
+            ref={catAudioRef}
+            url="/audio/leopard.mp3"
+            distance={20}
+            volume={audioVolume * 0.05}
+            loop={true}
+          />
+          <PositionalAudio
+            ref={catHitAudioRef}
+            url="/audio/leopardroar.mp3"
+            distance={20}
+            volume={audioVolume}
+            loop={false}
+          />
+        </>
       ) : (
         <mesh castShadow>
           <boxGeometry args={animalData.type.size} />
@@ -1266,7 +1347,7 @@ function App() {
     <div className="app">
       <Canvas
         shadows
-        camera={{ position: [0, -1, 14], fov: 75 }}
+        camera={{ position: [0, -1, 16], fov: 75 }}
         style={{ width: '100vw', height: '100vh' }}
       >
         <Scene

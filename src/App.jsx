@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Canvas, useFrame, useLoader } from '@react-three/fiber'
-import { OrbitControls, Plane, Sphere, Environment } from '@react-three/drei'
+import { OrbitControls, Plane, Sphere, Environment, PositionalAudio } from '@react-three/drei'
 import { Pose } from '@mediapipe/pose'
 import { Camera } from '@mediapipe/camera_utils'
 import * as THREE from 'three'
@@ -303,12 +303,27 @@ function Spear({ position, spearState, thrownSpears }) {
 // Animal component
 function Animal({ animalData, onHit, onReachPlayer, thrownSpears, onHitMessage, isPaused, onDeathAnimationComplete }) {
   const meshRef = useRef()
+  const audioRef = useRef()
+  const ambientAudioRef = useRef()
   const [position, setPosition] = useState(animalData.position)
   const [health, setHealth] = useState(animalData.type.health)
   const [isAlive, setIsAlive] = useState(true)
   const [stuckSpears, setStuckSpears] = useState([])
   const [isDying, setIsDying] = useState(false)
   const [rotation, setRotation] = useState([0, 0, 0])
+  const [audioVolume] = useState(animalData.type.name === 'elephant' ? 0.3 + Math.random() * 0.4 : 0) // Random volume between 0.3-0.7 for elephants
+
+  // Start ambient audio for elephants when component mounts
+  useEffect(() => {
+    if (animalData.type.name === 'elephant' && ambientAudioRef.current) {
+      // Small delay to ensure audio is loaded
+      setTimeout(() => {
+        if (ambientAudioRef.current && ambientAudioRef.current.play) {
+          ambientAudioRef.current.play()
+        }
+      }, 100)
+    }
+  }, [])
 
   useFrame((state, delta) => {
     if (!meshRef.current || !isAlive || isPaused) return
@@ -343,6 +358,11 @@ function Animal({ animalData, onHit, onReachPlayer, thrownSpears, onHitMessage, 
 
     // Check if animal reached the front (player position)
     if (newPosition[2] >= 8) {
+      // Stop ambient audio when elephant reaches player
+      if (animalData.type.name === 'elephant' && ambientAudioRef.current) {
+        ambientAudioRef.current.pause()
+      }
+      
       onReachPlayer(animalData.type.damage, animalData.id)
       setIsAlive(false)
       return
@@ -374,6 +394,29 @@ function Animal({ animalData, onHit, onReachPlayer, thrownSpears, onHitMessage, 
           spear.setHasHitAnimal(true)
         }
 
+        // Play elephant sound when hit
+        if (animalData.type.name === 'elephant' && audioRef.current) {
+          // Pause ambient sound temporarily
+          if (ambientAudioRef.current && ambientAudioRef.current.pause) {
+            ambientAudioRef.current.pause()
+          }
+          
+          // Ensure no looping and avoid retriggering while already playing
+          if (typeof audioRef.current.setLoop === 'function') {
+            audioRef.current.setLoop(false)
+          }
+          if (!audioRef.current.isPlaying) {
+            audioRef.current.play()
+            
+            // Resume ambient sound after hit sound finishes (approximately 2 seconds)
+            setTimeout(() => {
+              if (ambientAudioRef.current && ambientAudioRef.current.play && isAlive) {
+                ambientAudioRef.current.play()
+              }
+            }, 2000)
+          }
+        }
+
         // Show hit message
         const messages = ['HIT!', 'STRIKE!', 'NICE SHOT!', 'BULLSEYE!', 'PERFECT!']
         const randomMessage = messages[Math.floor(Math.random() * messages.length)]
@@ -387,7 +430,15 @@ function Animal({ animalData, onHit, onReachPlayer, thrownSpears, onHitMessage, 
         if (newHealth <= 0) {
           setIsAlive(false)
           setIsDying(true)
+          
+          // Stop ambient audio when elephant dies
+          if (animalData.type.name === 'elephant' && ambientAudioRef.current) {
+            ambientAudioRef.current.pause()
+          }
+          
           onHit(animalData.type.score, spear.id, animalData.id)
+
+
 
           // Remove the animal after death animation
           // Different durations: 3 seconds for elephants, 2 seconds for cheetahs, 1 second for antelopes
@@ -416,17 +467,33 @@ function Animal({ animalData, onHit, onReachPlayer, thrownSpears, onHitMessage, 
     <group ref={meshRef} position={position}>
       {/* Animal body - 3D models for elephant, antelope, and cheetah, cube for others */}
       {animalData.type.name === 'elephant' ? (
-        <ElephantModel
-          scale={[5.5, 5.5, 5.5]}
-          rotation={rotation}
-          castShadow
-          animationState={
-            isDying ? 'death' :
-              health === animalData.type.health - 1 ? 'run' :
-                health === animalData.type.health - 2 ? 'attack' :
-                  'walk'
-          }
-        />
+        <>
+          <ElephantModel
+            scale={[5.5, 5.5, 5.5]}
+            rotation={rotation}
+            castShadow
+            animationState={
+              isDying ? 'death' :
+                health === animalData.type.health - 1 ? 'run' :
+                  health === animalData.type.health - 2 ? 'attack' :
+                    'walk'
+            }
+          />
+          <PositionalAudio
+            ref={audioRef}
+            url="/audio/elephantshort.wav"
+            distance={20}
+            volume={audioVolume}
+            loop={false}
+          />
+          <PositionalAudio
+            ref={ambientAudioRef}
+            url="/audio/elephantambient.mp3"
+            distance={20}
+            volume={audioVolume * 0.7}
+            loop={true}
+          />
+        </>
       ) : animalData.type.name === 'antelope' ? (
         <AntelopeModel
           scale={[3, 3, 3]}
@@ -556,6 +623,14 @@ function ThrownSpear({ spearData, isPaused, onMiss }) {
         onMiss(spearData.id)
       }
     }
+
+    // Update orientation to align with flight direction (velocity)
+    const vx = newVelocity[0]
+    const vy = newVelocity[1]
+    const vz = newVelocity[2]
+    const yaw = Math.atan2(vx, -vz) // rotate left/right based on horizontal motion
+    const pitch = Math.atan2(vy, Math.hypot(vx, vz)) // tilt up/down based on vertical motion
+    meshRef.current.rotation.set(-pitch, yaw, 0)
 
     setVelocity(newVelocity)
     setPosition(newPosition)
@@ -1120,16 +1195,14 @@ function App() {
       console.log('Pose detection - Head:', headPos, 'Hand Raised:', isHandRaised, 'Spear State:', spearState)
 
       if (headPos) {
-        // Convert head position to 3D aiming position
-        let x = (0.5 - headPos.x) * 25 // Increased X-axis range for wider movement
+        // Convert head position to 3D aiming position (no angular rotation applied)
+        let x = (0.5 - headPos.x) * 40 // Expanded X-axis range to match animal spawn width (40 units)
         let y = (1 - headPos.y) * 2.5 - 4  // Reduced Y height to match lowered animal ground level
 
-        // Apply camera rotation to X and Y coordinates
-        const [rotatedX, rotatedY] = rotateCoordinates(x, y, cameraRotation)
-
+        // Use unrotated coordinates for aiming/firing
         const position = [
-          rotatedX,
-          rotatedY,
+          x,
+          y,
           5 + (headPos.z || 0) * -3      // Start closer to camera (z=5) and scale depth
         ]
 
@@ -1158,12 +1231,13 @@ function App() {
         if (currentTime - lastFireTime >= FIRE_COOLDOWN) {
           // All shots are now max power
           const powerRatio = 1.0 // Always 100% power
-          const baseVelocity = 1.5 + powerRatio * 5.0 // Reduced max velocity
+          const baseVelocity = 2.5 + powerRatio * 8.0 // Increased max velocity for longer distance
 
           // Z velocity at max power
-          const zVelocity = -baseVelocity * (1 + powerRatio * 5) // Reduced max distance
-          const yVelocity = 0.8 + powerRatio * 1.5 // Reduced upward arc
-          const xVelocity = 0 // No horizontal movement
+          const zVelocity = -baseVelocity * (1 + powerRatio * 8) // Increased max distance
+          const yVelocity = 1.2 + powerRatio * 2.0 // Increased upward arc for longer flight
+          // Add lateral (X) velocity based on horizontal offset from center to better aim at angled animals
+          const xVelocity = THREE.MathUtils.clamp((headPosition[0] || 0) * 0.2, -3, 3)
 
           const velocity = [xVelocity, yVelocity, zVelocity]
 

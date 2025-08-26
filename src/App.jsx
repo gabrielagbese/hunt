@@ -242,10 +242,13 @@ function GroundPlane() {
 }
 
 // Spear component
-function Spear({ position, spearState }) {
+function Spear({ position, spearState, thrownSpears }) {
   const meshRef = useRef()
   const [spearPosition, setSpearPosition] = useState([0, -3.5, 5])
   const lastValidPosition = useRef([0, -3.5, 5])
+
+  // Check if there are any active thrown spears
+  const hasActiveThrownSpears = thrownSpears && thrownSpears.length > 0
 
   useFrame(() => {
     if (meshRef.current) {
@@ -273,7 +276,12 @@ function Spear({ position, spearState }) {
     }
   }, [spearState])
 
-  console.log('Spear rendering at position:', position, 'state:', spearState)
+  console.log('Spear rendering at position:', position, 'state:', spearState, 'hasActiveThrownSpears:', hasActiveThrownSpears)
+
+  // Hide the static spear when there are active thrown spears
+  if (hasActiveThrownSpears) {
+    return null
+  }
 
   return (
     <group ref={meshRef} position={spearPosition}>
@@ -300,6 +308,7 @@ function Animal({ animalData, onHit, onReachPlayer, thrownSpears, onHitMessage, 
   const [isAlive, setIsAlive] = useState(true)
   const [stuckSpears, setStuckSpears] = useState([])
   const [isDying, setIsDying] = useState(false)
+  const [rotation, setRotation] = useState([0, 0, 0])
 
   useFrame((state, delta) => {
     if (!meshRef.current || !isAlive || isPaused) return
@@ -308,11 +317,28 @@ function Animal({ animalData, onHit, onReachPlayer, thrownSpears, onHitMessage, 
     const hitsTaken = animalData.type.health - health
     const currentSpeed = animalData.type.baseSpeed + (hitsTaken * animalData.type.speedIncrease)
 
-    // Move animal forward towards camera
+    // Move animal towards camera at x:0
+    const targetX = 0 // Camera is at x:0
+    const targetZ = 8 // Front position where animals reach player
+
+    // Calculate direction vector towards camera
+    const directionX = targetX - position[0]
+    const directionZ = targetZ - position[2]
+    const distance = Math.sqrt(directionX * directionX + directionZ * directionZ)
+
+    // Calculate rotation angle to face the center
+    const angle = Math.atan2(directionX, directionZ)
+    const newRotation = [0, angle, 0]
+    setRotation(newRotation)
+
+    // Normalize direction and apply speed
+    const normalizedX = directionX / distance
+    const normalizedZ = directionZ / distance
+
     const newPosition = [
-      position[0],
+      position[0] + normalizedX * currentSpeed * delta,
       position[1],
-      position[2] + currentSpeed * delta
+      position[2] + normalizedZ * currentSpeed * delta,
     ]
 
     // Check if animal reached the front (player position)
@@ -392,7 +418,7 @@ function Animal({ animalData, onHit, onReachPlayer, thrownSpears, onHitMessage, 
       {animalData.type.name === 'elephant' ? (
         <ElephantModel
           scale={[5.5, 5.5, 5.5]}
-          rotation={[0, 0, 0]}
+          rotation={rotation}
           castShadow
           animationState={
             isDying ? 'death' :
@@ -404,14 +430,14 @@ function Animal({ animalData, onHit, onReachPlayer, thrownSpears, onHitMessage, 
       ) : animalData.type.name === 'antelope' ? (
         <AntelopeModel
           scale={[3, 3, 3]}
-          rotation={[0, 0, 0]}
+          rotation={rotation}
           castShadow
           animationState={isDying ? 'death' : 'walk'}
         />
       ) : animalData.type.name === 'cheetah' ? (
         <CatModel
           scale={[3.5, 3.5, 3.5]}
-          rotation={[0, 0, 0]}
+          rotation={rotation}
           castShadow
           animationState={
             isDying ? 'death' :
@@ -543,7 +569,7 @@ function ThrownSpear({ spearData, isPaused, onMiss }) {
 
   return (
     <group ref={meshRef} position={position}>
-      <SpearModel scale={[0.5, 0.5, 0.5]} rotation={[0, 0, Math.PI / 2]} castShadow />
+      <SpearModel scale={[0.75, 0.75, 0.75]} rotation={[0, 0, Math.PI / 2]} castShadow />
     </group>
   )
 }
@@ -619,6 +645,7 @@ function Scene({ headPosition, spearState, thrownSpears, animals, onAnimalHit, o
       <Spear
         position={headPosition}
         spearState={spearState}
+        thrownSpears={thrownSpears}
       />
 
       {/* Thrown Spears */}
@@ -976,8 +1003,8 @@ function App() {
     }
 
     // Random spawn position at the back of the plane
-    // const spawnX = (Math.random() - 0.5) * 15 // Random X position across the width
-    const spawnX = (Math.random() - 0.5)
+    const spawnX = (Math.random() - 0.5) * 40 // Random X position across the width
+    // const spawnX = (Math.random() - 0.5)
     const spawnY = -4 // Ground level (lowered by 4 units)
     const spawnZ = -25 // Back of the plane
 

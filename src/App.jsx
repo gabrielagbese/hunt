@@ -7,6 +7,7 @@ import * as THREE from 'three'
 import { Model as ElephantModel } from '../Elephant.jsx'
 import { Model as AntelopeModel } from '../Antelope.jsx'
 import { Model as CatModel } from '../Cat.jsx'
+import { Model as BuffaloModel } from '../Buffalo.jsx'
 import { Model as GrassModel } from '../Grass.jsx'
 import { Model as SpearModel } from '../Spear.jsx'
 import { Model as TreeModel } from '../Tree.jsx'
@@ -31,7 +32,7 @@ const ANIMAL_TYPES = {
     size: [2, 2.5, 3],
     color: '#8B7355',
     score: 100,
-    spawnWeight: 0.5
+    spawnWeight: 0.25
   },
   CHEETAH: {
     name: 'cheetah',
@@ -42,7 +43,7 @@ const ANIMAL_TYPES = {
     size: [1.5, 2.0, 2],
     color: '#DAA520',
     score: 75,
-    spawnWeight: 0.125
+    spawnWeight: 0.25
   },
   ANTELOPE: {
     name: 'antelope',
@@ -53,6 +54,17 @@ const ANIMAL_TYPES = {
     size: [1, 2.2, 1.5],
     color: '#CD853F',
     score: 50,
+    spawnWeight: 0.25
+  },
+  BUFFALO: {
+    name: 'buffalo',
+    baseSpeed: 0.7,
+    speedIncrease: 0.3,
+    health: 3, // 3 hits to kill
+    damage: 40,
+    size: [2.5, 2.5, 3.5],
+    color: '#5C4033',
+    score: 90,
     spawnWeight: 0.25
   }
 }
@@ -309,6 +321,8 @@ function Animal({ animalData, onHit, onReachPlayer, thrownSpears, onHitMessage, 
   const catHitAudioRef = useRef()
   const antelopeAudioRef = useRef()
   const antelopeHitAudioRef = useRef()
+  const buffaloAudioRef = useRef()
+  const buffaloHitAudioRef = useRef()
   const [position, setPosition] = useState(animalData.position)
   const [health, setHealth] = useState(animalData.type.health)
   const [isAlive, setIsAlive] = useState(true)
@@ -340,6 +354,15 @@ function Animal({ animalData, onHit, onReachPlayer, thrownSpears, onHitMessage, 
       setTimeout(() => {
         antelopeAudioRef.current.play()
       }, 200)
+    }
+    // Play buffalo ambient sound when buffalo spawns
+    if (animalData.type.name === 'buffalo' && buffaloAudioRef.current) {
+      setTimeout(() => {
+        if (buffaloAudioRef.current && buffaloAudioRef.current.play) {
+          buffaloAudioRef.current.play()
+        }
+      }, 250)
+      console.log('🐃 Buffalo mounted:', { id: animalData.id, health: animalData.type.health })
     }
   }, [])
 
@@ -387,6 +410,10 @@ function Animal({ animalData, onHit, onReachPlayer, thrownSpears, onHitMessage, 
       // Stop ambient audio when antelope reaches player
       if (animalData.type.name === 'antelope' && antelopeAudioRef.current) {
         antelopeAudioRef.current.pause()
+      }
+      // Stop ambient audio when buffalo reaches player
+      if (animalData.type.name === 'buffalo' && buffaloAudioRef.current) {
+        buffaloAudioRef.current.pause()
       }
 
       onReachPlayer(animalData.type.damage, animalData.id)
@@ -457,6 +484,13 @@ function Animal({ animalData, onHit, onReachPlayer, thrownSpears, onHitMessage, 
           }
         }
 
+        // Play buffalo hit sound when buffalo is hit
+        if (animalData.type.name === 'buffalo' && buffaloHitAudioRef.current) {
+          if (!buffaloHitAudioRef.current.isPlaying) {
+            buffaloHitAudioRef.current.play()
+          }
+        }
+
         // Show hit message
         const messages = ['HIT!', 'STRIKE!', 'NICE SHOT!', 'BULLSEYE!', 'PERFECT!']
         const randomMessage = messages[Math.floor(Math.random() * messages.length)]
@@ -485,14 +519,20 @@ function Animal({ animalData, onHit, onReachPlayer, thrownSpears, onHitMessage, 
           if (animalData.type.name === 'antelope' && antelopeAudioRef.current) {
             antelopeAudioRef.current.pause()
           }
+
+          // Pause ambient audio for buffalo when they die
+          if (animalData.type.name === 'buffalo' && buffaloAudioRef.current) {
+            buffaloAudioRef.current.pause()
+          }
           onHit(animalData.type.score, spear.id, animalData.id)
 
 
 
           // Remove the animal after death animation
-          // Different durations: 3 seconds for elephants, 2 seconds for cheetahs, 1 second for antelopes
+          // Different durations: 3 seconds for elephants, 4 seconds for cheetahs, 3 seconds for buffalo, 1 second for antelopes
           const deathAnimationDuration = animalData.type.name === 'elephant' ? 3000 :
-            animalData.type.name === 'cheetah' ? 4000 : 800
+            animalData.type.name === 'cheetah' ? 4000 :
+              animalData.type.name === 'buffalo' ? 2000 : 800
           console.log('💀 DEATH ANIMATION STARTED:', { animalId: animalData.id, type: animalData.type.name, duration: deathAnimationDuration })
           setTimeout(() => {
             console.log('✅ DEATH ANIMATION COMPLETE:', { animalId: animalData.id, type: animalData.type.name })
@@ -523,9 +563,10 @@ function Animal({ animalData, onHit, onReachPlayer, thrownSpears, onHitMessage, 
             castShadow
             animationState={
               isDying ? 'death' :
-                health === animalData.type.health - 1 ? 'run' :
-                  health === animalData.type.health - 2 ? 'attack' :
-                    'walk'
+                health === 3 ? 'walk' :
+                  health === 2 ? 'run' :
+                    health === 1 ? 'run' :
+                      'walk'
             }
           />
           <PositionalAudio
@@ -593,6 +634,35 @@ function Animal({ animalData, onHit, onReachPlayer, thrownSpears, onHitMessage, 
             loop={false}
           />
         </>
+      ) : animalData.type.name === 'buffalo' ? (
+        <>
+          {console.log('🐃 Buffalo render branch active:', { id: animalData.id, health, isDying })}
+          <BuffaloModel
+            scale={[2, 2, 2]}
+            rotation={rotation}
+            castShadow
+            animationState={
+              isDying ? 'death' :
+                health === animalData.type.health - 1 ? 'run' :
+                  health === animalData.type.health - 2 ? 'run' :
+                    'walk'
+            }
+          />
+          <PositionalAudio
+            ref={buffaloAudioRef}
+            url="/audio/buffaloambient.mp3"
+            distance={20}
+            volume={audioVolume * 0.7}
+            loop={true}
+          />
+          <PositionalAudio
+            ref={buffaloHitAudioRef}
+            url="/audio/buffalohit.mp3"
+            distance={20}
+            volume={audioVolume}
+            loop={false}
+          />
+        </>
       ) : (
         <mesh castShadow>
           <boxGeometry args={animalData.type.size} />
@@ -648,6 +718,7 @@ function ThrownSpear({ spearData, isPaused, onMiss }) {
   const [isActive, setIsActive] = useState(true)
   const [hasTriggeredMiss, setHasTriggeredMiss] = useState(false)
   const [hasHitAnimal, setHasHitAnimal] = useState(false)
+  const [trail, setTrail] = useState([spearData.position]) // Track spear trail for debugging
 
   // Update spear data with current position and active state for collision detection
   spearData.position = position
@@ -716,6 +787,12 @@ function ThrownSpear({ spearData, isPaused, onMiss }) {
     setVelocity(newVelocity)
     setPosition(newPosition)
     meshRef.current.position.set(...newPosition)
+
+    // Add current position to trail for debugging (limit trail length)
+    setTrail(prev => {
+      const newTrail = [...prev, [...newPosition]]
+      return newTrail.length > 20 ? newTrail.slice(-20) : newTrail // Keep last 20 positions
+    })
   })
 
   // Don't render if spear is out of bounds
@@ -726,6 +803,18 @@ function ThrownSpear({ spearData, isPaused, onMiss }) {
   return (
     <group ref={meshRef} position={position}>
       <SpearModel scale={[0.75, 0.75, 0.75]} rotation={[0, 0, Math.PI / 2]} castShadow />
+
+      {/* Debug trail to show actual spear path */}
+      {trail.map((trailPos, index) => {
+        if (index === 0) return null // Skip first position
+        const opacity = (index / trail.length) * 0.8 // Fade trail
+        return (
+          <mesh key={index} position={trailPos}>
+            <sphereGeometry args={[0.05]} />
+            <meshBasicMaterial color="#ff0000" transparent opacity={opacity} />
+          </mesh>
+        )
+      })}
     </group>
   )
 }
@@ -823,7 +912,7 @@ function Scene({ headPosition, spearState, thrownSpears, animals, onAnimalHit, o
         />
       ))}
 
-      <OrbitControls enablePan={false} enableZoom={false} enableRotate={true} />
+      <OrbitControls enablePan={false} enableZoom={true} enableRotate={true} />
     </>
   )
 }
@@ -1159,7 +1248,7 @@ function App() {
     }
 
     // Random spawn position at the back of the plane
-    const spawnX = (Math.random() - 0.5) * 40 // Random X position across the width
+    const spawnX = (Math.random() - 0.5) * 30 // Random X position across the width
     // const spawnX = (Math.random() - 0.5)
     const spawnY = -4 // Ground level (lowered by 4 units)
     const spawnZ = -25 // Back of the plane
@@ -1347,7 +1436,7 @@ function App() {
     <div className="app">
       <Canvas
         shadows
-        camera={{ position: [0, -1, 16], fov: 75 }}
+        camera={{ position: [0, -1, 18], fov: 60 }}
         style={{ width: '100vw', height: '100vh' }}
       >
         <Scene
